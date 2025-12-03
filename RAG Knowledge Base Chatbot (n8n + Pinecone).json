@@ -1,0 +1,347 @@
+{
+  "name": "RAG Knowledge Base Chatbot (n8n + Pinecone)",
+  "nodes": [
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {
+          "splitPages": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -416,
+        112
+      ],
+      "id": "b8e93881-67d9-4c0b-8ee3-5b5a54c7bf7c",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMonth",
+              "dayOfMonth": 15
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1lpoOEBE36HRedC3bEndzeLZEGmsE68GY",
+          "mode": "list",
+          "cachedResultName": "Book",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1lpoOEBE36HRedC3bEndzeLZEGmsE68GY"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        -80
+      ],
+      "id": "2695b222-255b-4ce6-9b01-05808f614348",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "oME0CH9qBoR3IHIb",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -144,
+        -80
+      ],
+      "id": "8960c9fe-6af7-48ca-91f6-d77acc94a215",
+      "name": "When chat message received",
+      "webhookId": "6959f870-9a44-47c7-89a2-92af808d7867"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a Customer Chat Support Bot. You have the access of the pinecone tool to access the 'Space Science - Book', to answer the questions or queries of the clients and to ask if there's any other related questions they have to help with.\nAnswer in a professional and friendly way!\nMust stick to the book's knowledge!"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        64,
+        -80
+      ],
+      "id": "4b3101f4-2cce-4d5c-bd97-f7ff94a221a3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "You can access the 'Space Science - Book' here, to generate your output according to the instructions you've been given in the AI Agent-Node!",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "book",
+          "mode": "list",
+          "cachedResultName": "book"
+        },
+        "options": {
+          "pineconeNamespace": "Space Science - Book"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        208,
+        128
+      ],
+      "id": "bc219736-6abe-4b2a-b8d6-0b6cd6e44429",
+      "name": "Retrieve Doc from Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "SkJMF7ft1aenLJhk",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        112
+      ],
+      "id": "a6dcfa59-a579-44ca-afbc-0ee9a340b143",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "xoiPndJ5nWRoo1JX",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        288,
+        272
+      ],
+      "id": "97e393df-0f6b-41c6-a855-7d4de1bda20b",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "xoiPndJ5nWRoo1JX",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        128
+      ],
+      "id": "ac60ea83-6083-4853-b7b9-f49e52cc0cf1",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "xoiPndJ5nWRoo1JX",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -736,
+        -80
+      ],
+      "id": "415f5579-14f2-490b-b529-3d88ae0f9926",
+      "name": "Download Book",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "oME0CH9qBoR3IHIb",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "book",
+          "mode": "list",
+          "cachedResultName": "book"
+        },
+        "options": {
+          "pineconeNamespace": "Space Science - Book"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -544,
+        -80
+      ],
+      "id": "fb3cbd27-4964-4b38-a88c-243f5a2d0201",
+      "name": "Upload Book to Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "SkJMF7ft1aenLJhk",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        128
+      ],
+      "id": "6f2b93fb-f936-49e9-b895-858a22697342",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Upload Book to Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Doc from Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Upload Book to Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Retrieve Doc from Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Book": {
+      "main": [
+        [
+          {
+            "node": "Upload Book to Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ce4ae4e8-15e2-49ba-a83d-c609dcde4fa4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "10dc3b4bce401c066f1c2270cecf1e1ab02c5f7086c8a9e2c6e4a03a4af795f1"
+  },
+  "id": "ijQFHWIm9lrqgTxG",
+  "tags": []
+}
