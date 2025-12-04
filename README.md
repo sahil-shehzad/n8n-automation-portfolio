@@ -26,27 +26,34 @@ This repository showcases my expertise in building self-healing, intelligent aut
     * Checks real-time availability and books appointments via Google Calendar.
     * **Workflow Logic:** Logs booking details to CRM, triggers Slack notifications to the team, and sends confirmation emails to the user.
 
-### 2. "Friday" - Agentic Personal Assistant (Telegram + Tavily)
+### 2. Automated Lead Gen & Enrichment Pipeline (n8n + Firecrawl + People Data Labs)
+* **Description:** A "Headhunter" agent that autonomously monitors startup directories (Y-Combinator), replacing hours of manual lead research.
+* **Key Features:**
+    * **Smart Ingestion:** Utilizes Firecrawl to scrape dynamic web pages into Markdown.
+    * **AI Qualification:** Leverages Gemini 3-pro to parse unstructured data and strictly qualify leads based on "B2B SaaS" criteria.
+    * **Enrichment Loop:** Integrates People Data Labs API to enrich validated companies with CEO contact details and firmographics, automatically pushing high-value leads to a Google Sheet CRM.
+
+### 3. "Friday" - Agentic Personal Assistant (Telegram + Tavily)
 * **Description:** A central command center bot for personal productivity, accessible via Telegram.
 * **Key Features:**
     * **Multi-Modal Input:** Processes text and Voice Notes (via Whisper API).
     * **Agentic Capabilities:** Autonomously manages Google Calendar events.
     * **Deep Research:** Uses Tavily AI to perform web research, summarize findings, and log data into a structured Google Sheet.
 
-### 3. RAG Knowledge Base Chatbot (n8n + Pinecone)
+### 4. RAG Knowledge Base Chatbot (n8n + Pinecone)
 * **Description:** A customer support expert pipeline using Retrieval-Augmented Generation (RAG).
 * **Key Features:**
     * **Vectorization:** Ingests PDF books/documentation and creates vector embeddings in Pinecone.
     * **Context Retrieval:** Retrieves strict context to answer queries accurately, minimizing hallucinations and grounding answers in source material.
 
-### 4. Full-Stack ATS Resume Optimizer (n8n + Lovable)
+### 5. Full-Stack ATS Resume Optimizer (n8n + Lovable)
 * **Description:** A consumer-facing web app backend that analyzes resumes against job descriptions.
 * **Key Features:**
     * Extracts text from PDF/Docx files.
     * Uses LLMs to generate an ATS Compatibility Score and a "Missing Keywords" list.
     * Frontend built with Lovable; Backend logic handled by n8n.
 
-### 5. Automated Financial Document Processing (AI + OCR)
+### 6. Automated Financial Document Processing (AI + OCR)
 * **Description:** An accounts receivable automation system.
 * **Key Features:**
     * Ingests paid invoice PDFs and uses AI/OCR to extract unstructured data (Line Items, Tax, Dates).
