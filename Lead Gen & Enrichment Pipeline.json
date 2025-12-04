@@ -1,0 +1,320 @@
+{
+  "name": "Portfolio: Auto-Lead Gen & Enrichment Agent (YC Hunter)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "trigger-cron",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v1/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_FIRECRAWL_KEY_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "https://www.ycombinator.com/companies"
+            },
+            {
+              "name": "formats",
+              "value": "[\"markdown\"]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "firecrawl-scraper",
+      "name": "Step 1: Scrape YC (Firecrawl)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        440,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Scrapes the startup directory into clean Markdown."
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4o"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a Data Extraction Agent. Your job is to read raw markdown and extract a clean list of B2B SaaS companies. \n\nRULES:\n1. Only extract companies that are B2B and software-focused.\n2. Ignore B2C, Hardware, or BioTech.\n3. Return a valid JSON Array. \n4. Keys must be: \"company_name\", \"website\", \"one_line_pitch\"."
+            },
+            {
+              "content": "={{ $json.data.markdown }}"
+            }
+          ]
+        },
+        "jsonOutput": true
+      },
+      "id": "openai-parser",
+      "name": "Step 2: AI Filter & Clean",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        660,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Extracts only B2B SaaS companies from the raw text."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the stringified JSON from OpenAI into actual n8n items\nconst rawData = $input.all()[0].json.content;\nconst companies = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;\n\n// If OpenAI returned an object with a key like 'companies', extract the array\nconst list = Array.isArray(companies) ? companies : (companies.companies || []);\n\nreturn list.map(company => ({ json: company }));"
+      },
+      "id": "code-parser",
+      "name": "Fix JSON Structure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "loop-companies",
+      "name": "Step 3: Loop (Batching)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.peopledatalabs.com/v5/company/enrich",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "website",
+              "value": "={{ $json.website }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "YOUR_PDL_KEY_HERE"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "pdl-company",
+      "name": "Step 4: Enrich Company",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1320,
+        200
+      ],
+      "notesInFlow": true,
+      "notes": "Gets Employee Count, Industry, and HQ Address."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.peopledatalabs.com/v5/person/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "YOUR_PDL_KEY_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ JSON.stringify({ \"bool\": { \"must\": [ { \"term\": { \"job_company_website\": $json.website } }, { \"term\": { \"job_title_role\": \"ceo\" } } ] } }) }}"
+            },
+            {
+              "name": "size",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "pdl-ceo-search",
+      "name": "Step 5: Find CEO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1540,
+        200
+      ],
+      "notesInFlow": true,
+      "notes": "Searches PDL database for the CEO of this specific website."
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "options": {}
+      },
+      "id": "google-sheets",
+      "name": "Step 6: Save to CRM",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1760,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "You must connect your Google Account and select a Sheet here."
+    }
+  ],
+  "connections": {
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Step 1: Scrape YC (Firecrawl)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 1: Scrape YC (Firecrawl)": {
+      "main": [
+        [
+          {
+            "node": "Step 2: AI Filter & Clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 2: AI Filter & Clean": {
+      "main": [
+        [
+          {
+            "node": "Fix JSON Structure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix JSON Structure": {
+      "main": [
+        [
+          {
+            "node": "Step 3: Loop (Batching)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 3: Loop (Batching)": {
+      "main": [
+        [
+          {
+            "node": "Step 4: Enrich Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 4: Enrich Company": {
+      "main": [
+        [
+          {
+            "node": "Step 5: Find CEO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 5: Find CEO": {
+      "main": [
+        [
+          {
+            "node": "Step 6: Save to CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Step 6: Save to CRM": {
+      "main": [
+        [
+          {
+            "node": "Step 3: Loop (Batching)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
