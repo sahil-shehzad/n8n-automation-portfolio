@@ -1,0 +1,925 @@
+{
+  "name": "Smart Cold Email Drip Campaign (Gmail + Sheets)",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Settings').item.json.sheet_url }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Settings').item.json.sheet_url }}"
+        },
+        "columns": {
+          "value": {
+            "row_number": "={{ $('To email?').item.json.row_number }}",
+            "first_emailed": "={{ $now.format('yyyy-MM-dd') }}"
+          },
+          "schema": [
+            {
+              "id": "email",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "email",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first_emailed",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "required": false,
+              "displayName": "first_emailed",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "type": "string",
+              "display": true,
+              "removed": true,
+              "required": false,
+              "displayName": "company",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "readOnly": true,
+              "required": false,
+              "displayName": "row_number",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "row_number"
+          ]
+        },
+        "options": {}
+      },
+      "id": "c67e9016-0cb5-4f0e-b549-dc19880396ea",
+      "name": "Update last contacted time",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        672,
+        160
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "message_template",
+              "stringValue": "={{ $('Email sequence').first().json.emails[0].message }}"
+            },
+            {
+              "name": "email",
+              "stringValue": "david@thedavid.co.uk"
+            },
+            {
+              "name": "name",
+              "stringValue": "Daffyd"
+            },
+            {
+              "name": "company",
+              "stringValue": "Davey Enterprises"
+            },
+            {
+              "name": "subject",
+              "stringValue": "={{ $('Settings').item.json.subject }}"
+            },
+            {
+              "name": "sender_name",
+              "stringValue": "={{ $('Settings').item.json.sender_name }}"
+            },
+            {
+              "name": "mail_id",
+              "stringValue": "={{ $('Settings').item.json.mail_id }}"
+            },
+            {
+              "name": "mail_seq",
+              "stringValue": "0"
+            }
+          ]
+        },
+        "include": "none",
+        "options": {}
+      },
+      "id": "80442169-f74f-420a-b10e-5404fb9f43d4",
+      "name": "Set message template",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -240,
+        736
+      ],
+      "typeVersion": 3.2,
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"emails\": [\n    {\n      \"message\": \"Hi {name}, hope you're well!<br />\\n<br />\\nYou're doing some great things at {company}, and I wanted to touch base to see if you wanted to chat.<br />\\n<br />\\nWould it make sense to jump on a quick call?<br />\\n<br />\\nRegards,<br />\\n<br />\\nNathan<br />\\n\",\n      \"send_on_day\": 0\n    },\n    {\n      \"message\": \"Hi {name},<br />\\n<br />\\nJust wanted to follow up on this, since it would be great to talk.<br />\\n<br />\\nRegards,<br />\\n<br />\\nNathan<br />\\n\",\n      \"send_on_day\": 3\n    },\n    {\n      \"message\": \"Just thought I'd give this one last try :)<br />\\n<br />\\nNathan\\n\",\n      \"send_on_day\": 8\n    }\n  ]\n}\n",
+        "options": {}
+      },
+      "id": "a9239d7f-cd29-48e0-8953-0762f897940e",
+      "name": "Email sequence",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -720,
+        160
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function extractPlaceholders(str) {\n    // Regular expression to match placeholders\n    // It matches any alphanumeric character including dashes and underscores between {}\n    const regex = /\\{([a-zA-Z0-9_-]+)\\}/g;\n    \n    // Set to store unique placeholders\n    const uniquePlaceholders = new Set();\n\n    // Extract and store unique placeholders\n    let match;\n    while ((match = regex.exec(str)) !== null) {\n        uniquePlaceholders.add(match[1]);\n    }\n\n    // Convert the Set to an array and return\n    return Array.from(uniquePlaceholders);\n}\n\nlet placeholders = Object.keys(item.json.placeholders)\nconsole.log(placeholders)\n\n// Substitute all the placeholders in the message\n  item.json.message = item.json.message_template\n  for (let key of extractPlaceholders(item.json.message_template)) {\n    if(!placeholders.includes(key)) throw new Error(`Missing data for placeholder '{${key}}'`)\n    const regex = new RegExp(`\\\\{${key}\\\\}`, 'g'); // Create a regex to match the exact word surrounded by {}\n    item.json.message = item.json.message.replaceAll(regex, item.json.placeholders[key]);\n  }\n\nreturn item"
+      },
+      "id": "ef947f75-5f3f-4ad9-a08c-e1102c7f9591",
+      "name": "Fill message placeholders",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        0,
+        736
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "message",
+              "stringValue": "=<span data-cam='{{ $json.mail_id }}' data-seq='{{ $json.mail_seq }}' data-ph='{{ JSON.stringify($json.placeholders) }}'></span>{{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "19954c81-6867-4f6d-b2b7-3e164f4f98fa",
+      "name": "Compose message",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        208,
+        736
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "returnAll": true,
+        "filters": {
+          "q": "=subject:{{ $json.subject }} after:{{ $now.minus({'days': $json.emails.last().send_on_day+1}).toSQL().substr(0, 10) }}"
+        }
+      },
+      "id": "1e1fec50-8437-45f1-9339-08beceff8e3d",
+      "name": "Get previous message threads",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        -320,
+        432
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "261b1eba-4c96-4c34-b840-03ed2232e493"
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "operation": "get",
+        "threadId": "={{ $json.id }}",
+        "simple": false,
+        "options": {}
+      },
+      "id": "6735bdba-894e-4d96-9b19-0ed33086c521",
+      "name": "Get thread details",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        -112,
+        432
+      ],
+      "typeVersion": 2,
+      "webhookId": "8b6f4e4f-4880-4f55-b34c-4cec173647e6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Because emails are sent slightly after the schedule trigger runs, we'll end up waiting an extra day to send unless we take into account the execution time of the workflow\nlet buffer_mins = 20\n\nlet templates = $('Email sequence').first().json.emails\n\nfunction next_sequence_number(messages, mail_id, sender_name) {\n  for (let i = 0; i < messages.length; i++) {\n    if(!('html' in messages[i])) return -1;\n    let in_campaign = messages[i].html.includes(\"data-cam='\"+mail_id+\"'\")\n    let valid_seq = messages[i].html.includes(\"data-seq='\"+i+\"'\")\n    let from_us = messages[i].From.includes(sender_name)\n    console.log(in_campaign + \", \" + valid_seq + \", \" + from_us)\n    if(!(from_us && in_campaign && valid_seq)) {\n      return -1;\n    }\n  }\n  return messages.length;\n}\n\n\nfor (const item of $input.all()) {\n  item.json.first_message_at = DateTime.fromMillis($('Get thread details').item.json.messages[0].internalDate*1)\n  item.json.days_since_first_message = DateTime.now().diff(item.json.first_message_at, 'days').days\n  item.json.next_sequence_number = next_sequence_number(\n    item.json.messages,\n    $('Settings').first().json.mail_id,\n    $('Settings').first().json.sender_name\n  );\n  item.json.next_message_due = (\n    item.json.next_sequence_number > 0\n    && item.json.next_sequence_number < templates.length\n    && templates[item.json.next_sequence_number].send_on_day <= item.json.days_since_first_message + (buffer_mins/60/24)\n  )\n\n  // Retrieve the placeholder values from the snippet, for use in future messages\n  const ph_matches = item.json.messages[0].snippet.match(/data-ph='([^']*)'/)\n  if(ph_matches?.length > 1) {\n    const placeholders = JSON.parse(ph_matches[1])\n    for(key of placeholders.keys()) {\n      item.json[key] = placeholders[key]\n    }\n  }\n\n}\n\nreturn $input.all();"
+      },
+      "id": "b9f35b26-eab5-4d67-b505-77de961b916d",
+      "name": "Classify threads",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        336,
+        432
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "00cf6401-f45a-4496-803c-70a5b2d7daf5",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.next_message_due }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "00ba3aa5-81d5-440d-b341-713677627046",
+      "name": "Next message due?",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        560,
+        432
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {},
+      "id": "28ecc8ec-065f-4c89-b91a-0fda6be91c0f",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -448,
+        736
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "dc8ec88f-daef-46be-b3da-1407d5e1c0b1",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.reply_message_id }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "84ac739a-80ed-4e63-9bc9-16e52da2e825",
+      "name": "Replying?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        432,
+        736
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to_email }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.message }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "={{ $json.sender_name }}"
+        }
+      },
+      "id": "ddc03f05-065d-466d-ae5d-2dba4c2ae5d8",
+      "name": "Send new message",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        656,
+        864
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "64ec154b-2438-4203-8d53-b3d9dc7969e7"
+    },
+    {
+      "parameters": {
+        "workflowId": "={{ $workflow.id }}",
+        "options": {}
+      },
+      "id": "90fa518b-6754-4d65-bd19-85d9fddf0478",
+      "name": "Call message send sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "position": [
+        1216,
+        432
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "message_template",
+              "stringValue": "={{ $('Email sequence').first().json.emails[$json.next_sequence_number].message }}"
+            },
+            {
+              "name": "reply_message_id",
+              "stringValue": "={{ $json.messages.last().id }}"
+            },
+            {
+              "name": "sender_name",
+              "stringValue": "={{ $('Settings').item.json.sender_name }}"
+            },
+            {
+              "name": "mail_id",
+              "stringValue": "={{ $('Settings').item.json.mail_id }}"
+            },
+            {
+              "name": "mail_seq",
+              "stringValue": "={{ $json.next_sequence_number }}"
+            },
+            {
+              "name": "to",
+              "stringValue": "={{ $json.messages[0].To }}"
+            }
+          ]
+        },
+        "include": "none",
+        "options": {}
+      },
+      "id": "7271bfbc-dc9e-4c09-9703-252a8935e5c3",
+      "name": "Prepare reply params",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        784,
+        432
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "message_template",
+              "stringValue": "={{ $('Email sequence').first().json.emails[0].message }}"
+            },
+            {
+              "name": "to_email",
+              "stringValue": "={{ $('Get emails').item.json[$('Settings').item.json.email_column_name] }}"
+            },
+            {
+              "name": "subject",
+              "stringValue": "={{ $('Settings').item.json.subject }}"
+            },
+            {
+              "name": "sender_name",
+              "stringValue": "={{ $('Settings').item.json.sender_name }}"
+            },
+            {
+              "name": "mail_id",
+              "stringValue": "={{ $('Settings').item.json.mail_id }}"
+            },
+            {
+              "name": "mail_seq",
+              "stringValue": "0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "894db622-0ec8-418a-b4f7-f87a6631a74c",
+      "name": "Prepare first message params",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        16,
+        160
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "workflowId": "={{ $workflow.id }}",
+        "mode": "each",
+        "options": {}
+      },
+      "id": "e2db99ee-583a-4b42-9e2c-c21d60a7c49f",
+      "name": "Call message send sub-workflow1",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "position": [
+        448,
+        160
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "eeec5901-5ff0-47b1-926b-e93097d64434",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.first_emailed.isEmpty() }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cfd0524c-4541-4469-a5d6-d4083817757c",
+      "name": "To email?",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        -224,
+        160
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// TODO: Some messages have an empty payload and a parts field instead (containing an array)\n\nfor (const item of $input.all()) {\n  for (const message of item.json.messages) {\n    console.log('message', message.payload.body.data || \"\")\n    let buffer = Buffer.from(message.payload.body.data || \"\", \"base64\");\n    message.html = buffer.toString(\"utf8\")\n  }\n}\n\nreturn $input.all();"
+      },
+      "id": "1056678a-15ef-4baa-94ee-da2948db630b",
+      "name": "Decode messages",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        128,
+        432
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const html = $('Decode messages').item.json.messages[0].html\nconst matches = html.match(/data-ph='([^']*)'/)\nlet placeholders = {}\nif(matches?.length > 0) {\n  ph = JSON.parse(matches[1])\n  for(k of Object.keys(ph)) {\n    placeholders[k] = ph[k]\n  }\n}\nitem.json.placeholders = placeholders\n\nreturn item;"
+      },
+      "id": "dcf922a5-e085-4a8e-a95f-7e8ce5dcce44",
+      "name": "Decode placeholder values",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1008,
+        432
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function extractPlaceholders(str) {\n    // Regular expression to match placeholders\n    // It matches any alphanumeric character including dashes and underscores between {}\n    const regex = /\\{([a-zA-Z0-9_-]+)\\}/g;\n    \n    // Set to store unique placeholders\n    const uniquePlaceholders = new Set();\n\n    // Extract and store unique placeholders\n    let match;\n    while ((match = regex.exec(str)) !== null) {\n        uniquePlaceholders.add(match[1]);\n    }\n\n    // Convert the Set to an array and return\n    return Array.from(uniquePlaceholders);\n}\n\n\n// Gather all the placeholder values for passing on\nconst all_ph_raw = $('Email sequence').first().json.emails.flatMap(e => extractPlaceholders(e.message))\nconst all_ph = [...new Set(all_ph_raw)];\nlet placeholders = {}\nfor(ph of all_ph) {\n  if($('Get emails').item.json[ph] == undefined) throw new Error(`Message placeholder '{${ph}}' requires a column called '${ph}' in the Google Sheet`)\n  placeholders[ph] = $('Get emails').item.json[ph]\n}\n\nitem.json.placeholders = placeholders\n\nreturn item;"
+      },
+      "id": "39cdd51a-e946-42c8-ad0b-b19b1789f8b6",
+      "name": "Package placeholder values",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        224,
+        160
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5e327a1d-3f2e-40f1-aaa1-9ce888349eb0",
+              "name": "sheet_url",
+              "type": "string",
+              "value": "https://docs.google.com/spreadsheets/d/12dsbRpvtVFDdPmyZ7-39vuHuFpM1eMyfOqGGGdsnrtc/edit#gid=0"
+            },
+            {
+              "id": "3255270a-3ac2-4c59-8215-ea79256b55cc",
+              "name": "subject",
+              "type": "string",
+              "value": "My amazing campaign"
+            },
+            {
+              "id": "76b40b74-acef-49f1-a0e2-0be9a461319a",
+              "name": "sender_name",
+              "type": "string",
+              "value": "Sahil Shehzad"
+            },
+            {
+              "id": "4532eb84-5ebc-4011-8c65-d97aeae21256",
+              "name": "email_column_name",
+              "type": "string",
+              "value": "email"
+            },
+            {
+              "id": "83de0ceb-39ec-426a-afba-13d66bce101d",
+              "name": "mail_id",
+              "type": "string",
+              "value": "123456"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "07e20634-8c6b-47d4-8e0d-ef31aa3dd5a1",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -944,
+        160
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $json.reply_message_id }}",
+        "message": "={{ $json.message }}",
+        "options": {
+          "senderName": "David Roberts"
+        }
+      },
+      "id": "19e781b4-5720-4171-a0f9-0b7cce51e756",
+      "name": "Reply to message",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        656,
+        640
+      ],
+      "typeVersion": 2,
+      "webhookId": "109fec04-be11-4447-8d2b-511ce58b1439"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Settings').item.json.sheet_url }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Settings').item.json.sheet_url }}"
+        },
+        "options": {}
+      },
+      "id": "b0849029-2cb4-4627-88bd-4270a5382031",
+      "name": "Get emails",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        -432,
+        160
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "triggerAtMinute": 12
+            }
+          ]
+        }
+      },
+      "id": "24a37e90-e052-469c-a564-40e6bc9c7af1",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        -1392,
+        160
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "195ce0cf-9d25-4e02-9f20-aa6edbc2d561",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              },
+              "leftValue": "={{ $now.isWeekend() }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9c3745e9-ef2e-4781-843f-75ced466e3ae",
+      "name": "Don't email on weekends",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        -1184,
+        160
+      ],
+      "typeVersion": 2
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Email sequence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replying?": {
+      "main": [
+        [
+          {
+            "node": "Reply to message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send new message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "To email?": {
+      "main": [
+        [
+          {
+            "node": "Prepare first message params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every hour": {
+      "main": [
+        [
+          {
+            "node": "Don't email on weekends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get emails": {
+      "main": [
+        [
+          {
+            "node": "To email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email sequence": {
+      "main": [
+        [
+          {
+            "node": "Get previous message threads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose message": {
+      "main": [
+        [
+          {
+            "node": "Replying?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decode messages": {
+      "main": [
+        [
+          {
+            "node": "Classify threads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify threads": {
+      "main": [
+        [
+          {
+            "node": "Next message due?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next message due?": {
+      "main": [
+        [
+          {
+            "node": "Prepare reply params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get thread details": {
+      "main": [
+        [
+          {
+            "node": "Decode messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare reply params": {
+      "main": [
+        [
+          {
+            "node": "Decode placeholder values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set message template": {
+      "main": [
+        [
+          {
+            "node": "Fill message placeholders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Don't email on weekends": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set message template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decode placeholder values": {
+      "main": [
+        [
+          {
+            "node": "Call message send sub-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fill message placeholders": {
+      "main": [
+        [
+          {
+            "node": "Compose message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Package placeholder values": {
+      "main": [
+        [
+          {
+            "node": "Call message send sub-workflow1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get previous message threads": {
+      "main": [
+        [
+          {
+            "node": "Get thread details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare first message params": {
+      "main": [
+        [
+          {
+            "node": "Package placeholder values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call message send sub-workflow1": {
+      "main": [
+        [
+          {
+            "node": "Update last contacted time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "29052c43-0cf1-493d-b4c4-5a4652dd2029",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c6ef445266b13d8f6fb46bf80cd5a72e60817b1ce9142d6807d2d2e8b6843fe5"
+  },
+  "id": "xuFW8x28STWh3lLn",
+  "tags": []
+}
