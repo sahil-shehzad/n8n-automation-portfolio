@@ -1,0 +1,463 @@
+{
+  "name": "\"Friday\" - Agentic Personal Assistant (Telegram + Tavily)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -432,
+        160
+      ],
+      "id": "d7ca9577-6b35-41c5-bb3a-cf164370ff9a",
+      "name": "Telegram Trigger",
+      "webhookId": "4b1cc1c8-e2ae-4a10-84aa-9d4ebc9403cd"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "50c622d1-e304-437e-ad1b-bdc2ca9a1e2f",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        160
+      ],
+      "id": "febe8c50-cadf-47db-8a62-c4fd47b44ebe",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "=You are FRIDAY, my highly intelligent, witty, and efficient personal assistant. My name is \"Sahil\" (Always remeber that)! Your goal is to assist me by managing my schedule, recording important notes, and performing web research.\n\n### YOUR TOOLS:\n1. Google Calendar_Create Event: Use this to check availability or schedule new events. Always check availability, and then create/schedule the event for the available time slot, and notify me!\n2. Google Calendar_Check Availability: Use this tool to chekc the availability, before creating/scheduling an event for me! \n3. Google Sheets (Notes):\nYou have a tool called 'Google Sheets (Notes)' (Google Sheets). Use it whenever the user wants to remember something, add a task, or save a thought.\n\n1. **Categorization Rules:** You must assign one of the following categories:\n   - **Shopping:** For items to buy (e.g., \"Buy milk\").\n   - **Meeting:** For agendas, schedules, or meeting notes.\n   - **Research:** For facts or data you found and need to save.\n   - **Idea:** For brainstorming or random thoughts.\n   - **Personal:** For diary entries or personal reminders.\n   - **Task:** For general to-dos (e.g., \"Fix the garage door\").\n\n2. **Content Extraction:**\n   - Extract the core information into the 'content' field.\n   - If there is a URL involved (e.g., \"Save this article\"), put the URL in the 'context' field.\n\n3. **Status:**\n   - Always assume the status is \"New\" unless told otherwise.\n\n### EXAMPLE:\nUser: \"Remind me to check the Bitcoin price later.\"\nAction: Call 'save_note' with:\n  - category: \"Task\"\n  - content: \"Check Bitcoin price\"\n  - context: \"\"\n\n4. Tavily (Web Search): Use this to research topics, find current events, or look up specific facts. Always send a query to this tool, to get the response!\n\n### YOUR BEHAVIOR GUIDELINES:\n- **Be Concise:** Give direct answers. Do not fluff your responses unless asked.\n- **Be Proactive:** If the user asks to \"schedule a meeting,\" ask for the missing details (time, date, duration) if they aren't provided.\n- **Smart Routing:**\n  - If the user says \"Remember to buy milk,\" use the [Notes] tool.\n  - If the user says \"When is my meeting with Stark?\", use the [Calendar] tool.\n  - If the user says \"Who won the game last night?\", use the [Web Search] tool.\n- **Personality:** You are helpful but slightly dry and professional, similar to the F.R.I.D.A.Y. OS from the movies.\n\n### IMPORTANT:\nIf you use a tool, always summarize the result for the user. For example, after scheduling a meeting, confirm: \"I have added the meeting to your calendar for Tuesday at 2 PM.\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        384,
+        160
+      ],
+      "id": "643eaaf0-ec29-4d6f-be45-8608368d2ca8",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "message.voice.mime_type",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fb7118c5-ed61-4427-81f1-3f3ecdd3bb5a",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        176,
+        16
+      ],
+      "id": "781e0a9e-42a2-4dfe-a337-7ac3a9cc03d0",
+      "name": "Transcribe a recording"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        224,
+        336
+      ],
+      "id": "ed2942d7-93fd-4460-b48a-ad6bc70b4a19",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=text",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        384,
+        336
+      ],
+      "id": "3f138136-5b06-4b8d-941e-3d143eccc959",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "sahil.shehzad07@gmail.com",
+          "mode": "list",
+          "cachedResultName": "sahil.shehzad07@gmail.com"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        496
+      ],
+      "id": "37f96bad-ebd2-46df-a5fc-06dc1548b44a",
+      "name": "Google Calendar_Create Event"
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "sahil.shehzad07@gmail.com",
+          "mode": "list",
+          "cachedResultName": "sahil.shehzad07@gmail.com"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        416
+      ],
+      "id": "b8f9b671-47aa-47ba-9a6d-c1a5db59e7df",
+      "name": "Google Calendar_Check Availability"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1Zl7O_8N7QqOxcpaZKkUWenoZZpuENsPC_1Ldj77PPHU",
+          "mode": "list",
+          "cachedResultName": "Friday - Personal Assistant",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Zl7O_8N7QqOxcpaZKkUWenoZZpuENsPC_1Ldj77PPHU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "v2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Zl7O_8N7QqOxcpaZKkUWenoZZpuENsPC_1Ldj77PPHU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date_Added": "={{ $now }}",
+            "Category": "={{ $json.category }}",
+            "Content": "={{ $json.content }}",
+            "Status": "New",
+            "Context_or_Link": "={{ $json.context }}"
+          },
+          "matchingColumns": [
+            "Date_Added"
+          ],
+          "schema": [
+            {
+              "id": "Date_Added",
+              "displayName": "Date_Added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Content",
+              "displayName": "Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Context_or_Link",
+              "displayName": "Context_or_Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        736,
+        528
+      ],
+      "id": "06113cbc-9abf-4ea8-b7fb-06ed6280521b",
+      "name": "Append or update row in sheet in Google Sheets"
+    },
+    {
+      "parameters": {
+        "chatId": "=5113784491",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        928,
+        160
+      ],
+      "id": "3195d2c6-f4c7-4a20-ab86-662e194d5287",
+      "name": "Send a text message",
+      "webhookId": "37425917-5dce-4d08-b018-36a2ec13e7ff"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Research the web for current events, facts, or specific topics.",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "\"YOUR_API_KEY_HERE\""
+            },
+            {
+              "name": "query",
+              "value": "={{ $fromAI('query') }}"
+            },
+            {
+              "name": "include_answer",
+              "value": "={{ true }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        832,
+        352
+      ],
+      "id": "0a4d013b-c354-4017-b829-e5cea40cf964",
+      "name": "Tavily (web search)"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar_Create Event": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar_Check Availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily (web search)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "deb249fb-d84f-4e26-bb4d-5b4591b40673",
+  "meta": {
+    "instanceId": "c6ef445266b13d8f6fb46bf80cd5a72e60817b1ce9142d6807d2d2e8b6843fe5"
+  },
+  "id": "SFo802fa0pZIDXRn",
+  "tags": []
+}

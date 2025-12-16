@@ -1,0 +1,419 @@
+{
+  "name": "Auto-Lead Gen & Enrichment Agent (YC Hunter)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8c6464f9-5333-4017-8479-94c36168bebd",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the stringified JSON from OpenAI into actual n8n items\nconst rawData = $input.all()[0].json.content;\nconst companies = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;\n\n// If OpenAI returned an object with a key like 'companies', extract the array\nconst list = Array.isArray(companies) ? companies : (companies.companies || []);\n\nreturn list.map(company => ({ json: company }));"
+      },
+      "id": "f0ed4df7-585c-42b2-b30e-4e4a2db91174",
+      "name": "Fix JSON Structure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/scrape",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "\"YOUR_API_KEY_HERE\""
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "https://www.ycombinator.com/companies"
+            },
+            {
+              "name": "formats",
+              "value": "[\"markdown\"]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9a48d2e8-d1e9-41ee-a00d-e8abc5a92b76",
+      "name": "Scrape YC (Firecrawl)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -176,
+        400
+      ],
+      "notesInFlow": true,
+      "notes": "Scrapes the startup directory into clean Markdown."
+    },
+    {
+      "parameters": {
+        "url": "https://api.peopledatalabs.com/v5/company/enrich",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "website",
+              "value": "={{ $json.website }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "\"YOUR_API_KEY_HERE\""
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "9ea9ffe9-0014-4493-bfb7-da9d9e9c40df",
+      "name": "Enrich Company (PDL)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        768,
+        288
+      ],
+      "notesInFlow": true,
+      "notes": "Gets Employee Count, Industry, and HQ Address."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.peopledatalabs.com/v5/person/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "\"YOUR_API_KEY_HERE\""
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ JSON.stringify({ \"bool\": { \"must\": [ { \"term\": { \"job_company_website\": $json.website } }, { \"term\": { \"job_title_role\": \"ceo\" } } ] } }) }}"
+            },
+            {
+              "name": "size",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b8165da8-34ed-4fa2-9c13-b6b31c34aab0",
+      "name": "Find CEO (PDL)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        992,
+        288
+      ],
+      "notesInFlow": true,
+      "notes": "Searches PDL database for the CEO of this specific website."
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "14DCaddIJGXKC3MTLMD8GH6OWlzQ-irKabQeO7LSXIFQ",
+          "mode": "list",
+          "cachedResultName": "Auto-Lead Gen & Enrichment Agent (YC Hunter)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14DCaddIJGXKC3MTLMD8GH6OWlzQ-irKabQeO7LSXIFQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14DCaddIJGXKC3MTLMD8GH6OWlzQ-irKabQeO7LSXIFQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "website",
+              "displayName": "website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "one_line_pitch",
+              "displayName": "one_line_pitch",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "industry",
+              "displayName": "industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "employee_count",
+              "displayName": "employee_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hq_location",
+              "displayName": "hq_location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ceo_name",
+              "displayName": "ceo_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ceo_linkedin",
+              "displayName": "ceo_linkedin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "78b9c61b-7a1b-4fcf-83c6-f3ff89596202",
+      "name": "Save to CRM (Sheet)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1200,
+        400
+      ],
+      "notesInFlow": true,
+      "notes": "You must connect your Google Account and select a Sheet here."
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ffe1fffc-6000-419f-8752-8c913ce08ae7",
+      "name": "Loop (Batching)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        544,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $json.data.markdown }}"
+            },
+            {
+              "role": "system",
+              "content": "You are a Data Extraction Agent. Your job is to read raw markdown and extract a clean list of B2B SaaS companies.\n\nRULES:\n1. Only extract companies that are B2B and software-focused.\n2. Ignore B2C, Hardware, Crypto, or BioTech.\n3. Return a STRICT JSON Array.\n4. Keys must be: \"company_name\", \"website\", \"one_line_pitch\"."
+            }
+          ]
+        },
+        "simplify": false,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        16,
+        400
+      ],
+      "id": "055423fb-56f8-473e-befd-553b45eb87f5",
+      "name": "Filter & Clean"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Scrape YC (Firecrawl)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix JSON Structure": {
+      "main": [
+        [
+          {
+            "node": "Loop (Batching)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape YC (Firecrawl)": {
+      "main": [
+        [
+          {
+            "node": "Fix JSON Structure",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter & Clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich Company (PDL)": {
+      "main": [
+        [
+          {
+            "node": "Find CEO (PDL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find CEO (PDL)": {
+      "main": [
+        [
+          {
+            "node": "Save to CRM (Sheet)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to CRM (Sheet)": {
+      "main": [
+        [
+          {
+            "node": "Loop (Batching)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop (Batching)": {
+      "main": [
+        [
+          {
+            "node": "Enrich Company (PDL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter & Clean": {
+      "main": [
+        [
+          {
+            "node": "Fix JSON Structure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4eca4355-0309-4e77-aade-588a4f08313e",
+  "meta": {
+    "instanceId": "c6ef445266b13d8f6fb46bf80cd5a72e60817b1ce9142d6807d2d2e8b6843fe5"
+  },
+  "id": "X24jsQ1Uonp1ntzT",
+  "tags": []
+}

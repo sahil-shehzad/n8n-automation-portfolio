@@ -1,0 +1,427 @@
+{
+  "name": "Automated Financial Document Processing (AI + OCR)",
+  "nodes": [
+    {
+      "parameters": {
+        "text": "={{ $json.content.parts[0].text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "Client's Name",
+              "description": "The name of the client",
+              "required": true
+            },
+            {
+              "name": "Client's Phone",
+              "description": "The phone of the client",
+              "required": true
+            },
+            {
+              "name": "Client's Address",
+              "description": "The address of the client",
+              "required": true
+            },
+            {
+              "name": "Invoice#",
+              "description": "Invoice Number",
+              "required": true
+            },
+            {
+              "name": "Date Created",
+              "type": "date",
+              "description": "The date on which the invoice is created",
+              "required": true
+            },
+            {
+              "name": "Due Date",
+              "type": "date",
+              "description": "The due date of the invoice",
+              "required": true
+            },
+            {
+              "name": "Total Amount",
+              "description": "Total Amount Paid",
+              "required": true
+            },
+            {
+              "name": "Status",
+              "type": "boolean",
+              "description": "Status of the payment, whether it's paid or unpaid",
+              "required": true
+            },
+            {
+              "name": "Qty Of Products",
+              "type": "number",
+              "description": "No. of the products purchased",
+              "required": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        16
+      ],
+      "id": "aa1093f6-a005-45b8-a703-10706472cd58",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        240
+      ],
+      "id": "a6f46038-630a-47c4-8c79-7014624f9122",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json['Invoice#'] }}\n{{ $json['Client\\'s Name'] }}\n{{ $json['Client\\'s Phone'] }}\n{{ $json['Client\\'s Address'] }}\n{{ $json['Qty Of Products'] }}\n{{ $json['Total Amount'] }}\n{{ $json.Status }} (true means Paid, false means Unpaid)\n{{ $json['Date Created'] }}\n{{ $json['Due Date'] }}"
+            }
+          ]
+        },
+        "options": {
+          "systemMessage": "You're a support bot for our billing team named \"Billify\".\n\nYour role is to craft an email to notify the billing department that an invoice has been paid, put all the relevant data from the invoice in the email, also share the Google Sheet's Link with them and notify them that the Invoice DataBase within the Google Sheet has also been updated, and they can review it.\n\nHere's the link to the Google's Sheet including the Invoice DataBase: https://docs.google.com/spreadsheets/d/1FJFfSF5IDv3xW0Wg_wzKOn3bgGZwwkb7h1Q2QqeR95s/edit?gid=0#gid=0\n\nCraft only the Body of the email! \n\nCraft a professional email response like the most of the other successful businesses do to notify their billing departments, of an upcoming new invoice!\n\nGive the output in html format!\n\nAlso use text formatting in the body like bold, italic, etc. (wherever needed)!\n\nDon't mention in the body that it's html!\n\nReturn ONLY the raw HTML code without any markdown formatting, code blocks, or backticks. Do not wrap the output in ```html or ``` tags. Output pure HTML only."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        336,
+        16
+      ],
+      "id": "2725df79-3be1-44d1-a970-96ca056d2f2d",
+      "name": "Message a model"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "You are an expert extraction algorithm.\nExtract all the relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you may omit the attribute's value.\nGive me each info in a separate parameter!",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        16
+      ],
+      "id": "c8408228-3856-4bd8-890b-85e18d4d5fe8",
+      "name": "Analyze Doc & Extract Text"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1GXFUrVwR472XfL55rDjA0oQfsPLO5qh6",
+          "mode": "list",
+          "cachedResultName": "Invoices",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1GXFUrVwR472XfL55rDjA0oQfsPLO5qh6"
+        },
+        "event": "fileCreated",
+        "options": {
+          "fileType": "all"
+        }
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        16
+      ],
+      "id": "0da192e2-700a-4297-846a-6a5cc125c772",
+      "name": "Fetch File"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -688,
+        16
+      ],
+      "id": "c259d7ee-da6d-4008-8f9a-9478f9d6e2ee",
+      "name": "Download File"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1FJFfSF5IDv3xW0Wg_wzKOn3bgGZwwkb7h1Q2QqeR95s",
+          "mode": "list",
+          "cachedResultName": "Invoice DataBase",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FJFfSF5IDv3xW0Wg_wzKOn3bgGZwwkb7h1Q2QqeR95s/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FJFfSF5IDv3xW0Wg_wzKOn3bgGZwwkb7h1Q2QqeR95s/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Client's Name": "={{ $json.output['Client\\'s Name'] }}",
+            "Invoice#": "={{ $json.output['Invoice#'] }}",
+            "Client's Phone": "={{ $json.output['Client\\'s Phone'] }}",
+            "Client's Address": "={{ $json.output['Client\\'s Address'] }}",
+            "Qty Of Products": "={{ $json.output['Qty Of Products'] }}",
+            "Total Amount": "={{ $json.output['Total Amount'] }}",
+            "Status": "={{ $json.output.Status }}",
+            "Date Created": "={{ $json.output['Date Created'] }}",
+            "Due Date": "={{ $json.output['Due Date'] }}"
+          },
+          "matchingColumns": [
+            "Invoice#"
+          ],
+          "schema": [
+            {
+              "id": "Invoice#",
+              "displayName": "Invoice#",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Client's Name",
+              "displayName": "Client's Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Client's Phone",
+              "displayName": "Client's Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Client's Address",
+              "displayName": "Client's Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Qty Of Products",
+              "displayName": "Qty Of Products",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Amount",
+              "displayName": "Total Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date Created",
+              "displayName": "Date Created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Due Date",
+              "displayName": "Due Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        112,
+        16
+      ],
+      "id": "2fe7efe5-4763-449a-9f46-acc36d23d2c7",
+      "name": "Append/Update Invoice DB"
+    },
+    {
+      "parameters": {
+        "sendTo": "sahil.shehzad07@gmail.com",
+        "subject": "=INVOICE PAID: {{ $('Append/Update Invoice DB').item.json['Client\\'s Name'] }} - {{ $('Append/Update Invoice DB').item.json['Invoice#'] }} (Total: {{ $('Append/Update Invoice DB').item.json['Total Amount'] }})",
+        "message": "={{ $json.content.parts[0].text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        688,
+        16
+      ],
+      "id": "2d8e1700-ade6-48a8-ba12-f8c2969bdf1e",
+      "name": "Send a message",
+      "webhookId": "225ffc5d-28a1-4cae-9a48-44fd79f2f819"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Append/Update Invoice DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Doc & Extract Text": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch File": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Analyze Doc & Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append/Update Invoice DB": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5c2d8b50-8e0d-47dc-9294-beb0d182e989",
+  "meta": {
+    "instanceId": "c6ef445266b13d8f6fb46bf80cd5a72e60817b1ce9142d6807d2d2e8b6843fe5"
+  },
+  "id": "f4HnxS9pGyVc8QC4",
+  "tags": []
+}

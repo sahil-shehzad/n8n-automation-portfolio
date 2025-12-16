@@ -1,0 +1,304 @@
+{
+  "name": "RAG Knowledge Base Chatbot (n8n + Pinecone)",
+  "nodes": [
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {
+          "splitPages": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        336
+      ],
+      "id": "f36cf4a0-2165-4b16-942e-dbf0a8286eaf",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMonth",
+              "dayOfMonth": 15
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1lpoOEBE36HRedC3bEndzeLZEGmsE68GY",
+          "mode": "list",
+          "cachedResultName": "Book",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1lpoOEBE36HRedC3bEndzeLZEGmsE68GY"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        144
+      ],
+      "id": "d00cae8c-4d7b-49f0-8396-ff676067a687",
+      "name": "Google Drive Trigger"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        272,
+        144
+      ],
+      "id": "2ae09f34-f888-4b33-a5d9-b91c9f5b4741",
+      "name": "When chat message received",
+      "webhookId": "6959f870-9a44-47c7-89a2-92af808d7867"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a Customer Chat Support Bot. You have the access of the pinecone tool to access the 'Space Science - Book', to answer the questions or queries of the clients and to ask if there's any other related questions they have to help with.\nAnswer in a professional and friendly way!\nMust stick to the book's knowledge!"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        480,
+        144
+      ],
+      "id": "6591a720-71c5-40ff-86db-419901a1d693",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "You can access the 'Space Science - Book' here, to generate your output according to the instructions you've been given in the AI Agent-Node!",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "book",
+          "mode": "list",
+          "cachedResultName": "book"
+        },
+        "options": {
+          "pineconeNamespace": "Space Science - Book"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        352
+      ],
+      "id": "1d1855b0-8a9b-4b58-bbb8-887d21bf1075",
+      "name": "Retrieve Doc from Vector Store"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        336
+      ],
+      "id": "4430d210-8219-460c-bd27-fcfd149b1a59",
+      "name": "Embeddings Google Gemini"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        704,
+        496
+      ],
+      "id": "554bbb6b-26a0-4a3f-a845-0e358c71c800",
+      "name": "Embeddings Google Gemini1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        304,
+        352
+      ],
+      "id": "7d81313f-8e4d-495c-8800-d2308c7ded92",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -320,
+        144
+      ],
+      "id": "0d0073b7-d7c0-4797-b582-d7a8c2696c0f",
+      "name": "Download Book"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "book",
+          "mode": "list",
+          "cachedResultName": "book"
+        },
+        "options": {
+          "pineconeNamespace": "Space Science - Book"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        144
+      ],
+      "id": "b9e5306b-4578-45d5-bb1f-09e2d2e21ffc",
+      "name": "Upload Book to Pinecone Vector Store"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        352
+      ],
+      "id": "66783273-78c2-41f2-a38f-ec812c3a1b3f",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Upload Book to Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Doc from Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Upload Book to Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Retrieve Doc from Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Book": {
+      "main": [
+        [
+          {
+            "node": "Upload Book to Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4c3ae429-e036-49db-907d-8d6a6107924d",
+  "meta": {
+    "instanceId": "c6ef445266b13d8f6fb46bf80cd5a72e60817b1ce9142d6807d2d2e8b6843fe5"
+  },
+  "id": "QjbIFERoDiESVrov",
+  "tags": []
+}

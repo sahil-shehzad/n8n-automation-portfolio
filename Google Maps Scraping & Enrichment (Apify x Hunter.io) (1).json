@@ -1,0 +1,175 @@
+{
+  "name": "Google Maps Scraping & Enrichment (Apify x Hunter.io)",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.website }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "9bab10d7-dfb3-45e8-b95f-e4f9e3ebb31c",
+      "name": "Has Website?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "domain": "={{ $json.website }}",
+        "filters": {}
+      },
+      "id": "97ba38ce-1ea5-4008-ba12-66693959c995",
+      "name": "Hunter.io (Find Email)",
+      "type": "n8n-nodes-base.hunter",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        80
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "formId": "EkKPpo"
+      },
+      "type": "n8n-nodes-tallyforms.tallyTrigger",
+      "typeVersion": 2,
+      "position": [
+        -864,
+        96
+      ],
+      "id": "ed9e1bab-db0a-48be-81d4-a0f387b8e94c",
+      "name": "Lead Gen Form",
+      "webhookId": "3df5d2e4-b62b-4f68-a017-f01615567f43"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"includeWebResults\": false,\n    \"language\": \"en\",\n    \"locationQuery\": \"{{ $json.question_Z6MvEz.value }}\",\n    \"maxCrawledPlacesPerSearch\":{{ $json.question_NWaMlB.value }} ,\n    \"maxImages\": 0,\n    \"maximumLeadsEnrichmentRecords\": 0,\n    \"scrapeContacts\": false,\n    \"scrapeDirectories\": false,\n    \"scrapeImageAuthors\": false,\n    \"scrapePlaceDetailPage\": false,\n    \"scrapeReviewsPersonalData\": true,\n    \"scrapeTableReservationProvider\": false,\n    \"searchStringsArray\": [\n        \"{{ $json.question_EQ28Eo.value }}\"\n    ],\n    \"skipClosedPlaces\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -656,
+        96
+      ],
+      "id": "615d6067-72a7-47a9-a81c-5572cd62a489",
+      "name": "Google Maps Actor (Run)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -448,
+        96
+      ],
+      "id": "c4c4fd49-537d-451e-8f94-3cb6b48abc30",
+      "name": "Get Results"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "8b3da794-1753-4a92-bc42-c6447f6c8363",
+      "name": "Google Sheets (Database)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        208,
+        64
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Hunter.io (Find Email)": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets (Database)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Website?": {
+      "main": [
+        [
+          {
+            "node": "Hunter.io (Find Email)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Gen Form": {
+      "main": [
+        [
+          {
+            "node": "Google Maps Actor (Run)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Maps Actor (Run)": {
+      "main": [
+        [
+          {
+            "node": "Get Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Results": {
+      "main": [
+        [
+          {
+            "node": "Has Website?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3d183305-8cea-4104-897b-daf6f1093cf7",
+  "meta": {
+    "instanceId": "c6ef445266b13d8f6fb46bf80cd5a72e60817b1ce9142d6807d2d2e8b6843fe5"
+  },
+  "id": "fRbHllrEjd1EOcj5",
+  "tags": []
+}

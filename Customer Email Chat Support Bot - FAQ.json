@@ -1,0 +1,257 @@
+{
+  "name": "Customer Email Chat Support Bot - FAQ",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        80
+      ],
+      "id": "0da16ca9-e275-426a-83b4-c4bc71892636",
+      "name": "Gmail Trigger"
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Customer Support",
+              "description": "Any query related to customer support. They may be asking any questions about our policies and products or services."
+            },
+            {
+              "category": "Other",
+              "description": "Any query other than the customer support."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        80
+      ],
+      "id": "423705bc-70b4-49de-b558-a0dd09e404df",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        416,
+        368
+      ],
+      "id": "55620d4c-5900-4592-b247-0e4a09397bf4",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        144,
+        304
+      ],
+      "id": "87bb583c-f72d-4658-8411-78cfcc138211",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Customer's email: {{ $json.text }}",
+        "options": {
+          "systemMessage": "You are a Customer Chat Support Bot. You have access to the Pinecone tool to access the FAQ Document, to answer customer queries.\n\nAnswer in a professional and friendly way. Use bullet points when helpful.\n\nIMPORTANT: Format your response using HTML tags:\n- Use <strong>text</strong> for bold\n- Use <em>text</em> for italic\n- Use <ul><li>item</li></ul> for bullet lists\n- Use <br> for line breaks\n- Use <p>paragraph</p> for paragraphs\n\nProvide ONLY the HTML body content for the email reply, no subject line."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        736,
+        64
+      ],
+      "id": "6a87fe2a-2fb0-4047-b4f1-908de87fa419",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        688,
+        272
+      ],
+      "id": "44f55823-2b00-4336-a1f9-3cf8a351c8d0",
+      "name": "Google Gemini Chat Model1"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "This is the file you need to access to answer the customers' queries, according to the instruction you've been given in the AI Agent-Node.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "rag",
+          "mode": "list",
+          "cachedResultName": "rag"
+        },
+        "options": {
+          "pineconeNamespace": "FAQ"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        944,
+        272
+      ],
+      "id": "62d06511-38de-4547-8054-279fcc0925c2",
+      "name": "Pinecone Vector Store"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        448
+      ],
+      "id": "805dde7e-29f3-464f-ae26-07dc69876172",
+      "name": "Embeddings Google Gemini"
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "message": "={{ $json.output }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1120,
+        64
+      ],
+      "id": "9c7a267e-4de7-4d7c-adaf-909cff8d9eac",
+      "name": "Reply to a message",
+      "webhookId": "c8eb19b8-36e9-4bef-8057-5c6dd4c7e4e7"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3271b41f-79c4-40f6-9074-2e9cdf788478",
+  "meta": {
+    "instanceId": "c6ef445266b13d8f6fb46bf80cd5a72e60817b1ce9142d6807d2d2e8b6843fe5"
+  },
+  "id": "A30P9I8YOIQBRmiU",
+  "tags": []
+}

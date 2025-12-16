@@ -1,0 +1,283 @@
+{
+  "name": "Advanced Vapi Voice Agent (RAG + Booking)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi-handler",
+        "options": {}
+      },
+      "id": "270f8a16-14e6-4370-ac6c-3b5b56126d70",
+      "name": "Vapi Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        128
+      ],
+      "webhookId": "716f24c9-e7e4-4265-b948-432aadd2d33b"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.message.type }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "tool-calls"
+            },
+            {
+              "value2": "transcript",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "c2f9a60f-e594-4780-855f-a51e27f0821a",
+      "name": "Route: Tool vs Transcript",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        0,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.message.toolCalls[0].function.name }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "check_availability"
+            },
+            {
+              "value2": "book_appointment",
+              "output": 1
+            },
+            {
+              "value2": "ask_knowledge_base",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "d00c0a5d-d590-4e77-bedc-31ce534c74eb",
+      "name": "Route Tool Function",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        208,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('Vapi Webhook').item.json.body.message.toolCalls[0].id }}\",\n      \"result\": \"I have found these available slots: {{ $json.start.dateTime }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "c0e48d6d-78f1-4714-be65-492878646d0f",
+      "name": "Respond to Vapi (Slots)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "primary"
+        },
+        "start": "={{ $json.body.message.toolCalls[0].function.arguments.startTime }}",
+        "end": "={{ $json.body.message.toolCalls[0].function.arguments.endTime }}",
+        "additionalFields": {}
+      },
+      "id": "3991f9aa-ab00-4834-8918-4fc562b0c716",
+      "name": "Book Slot",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        496,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('Vapi Webhook').item.json.body.message.toolCalls[0].id }}\",\n      \"result\": \"Success. The appointment is confirmed.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "3e8ad46b-5ee6-4708-bf97-e20bc986ba30",
+      "name": "Respond to Vapi (Confirmed)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        720,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('Vapi Webhook').item.json.body.message.toolCalls[0].id }}\",\n      \"result\": \"Here is the information from our policy: {{ $json.text }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "4fa7b9b7-3809-451e-bfaa-54dd1d8f4124",
+      "name": "Respond to Vapi (Answer)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        720,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "primary"
+        },
+        "options": {
+          "singleEvents": true
+        }
+      },
+      "id": "78d70c33-ef4f-4281-815d-b9be17a7bcf1",
+      "name": "Search Slots",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        496,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "FetmHgur3ioVhXSo",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/FetmHgur3ioVhXSo",
+          "cachedResultName": "RAG Knowledge Base (n8n + Pinecone)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        240
+      ],
+      "id": "89ed17e6-127b-4e60-bcf3-9ead3ae1e20a",
+      "name": "Call 'RAG Knowledge Base (n8n + Pinecone)'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Vapi Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route: Tool vs Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Tool vs Transcript": {
+      "main": [
+        [
+          {
+            "node": "Route Tool Function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Tool Function": {
+      "main": [
+        [
+          {
+            "node": "Search Slots",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Book Slot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'RAG Knowledge Base (n8n + Pinecone)'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book Slot": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi (Confirmed)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Slots": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi (Slots)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'RAG Knowledge Base (n8n + Pinecone)'": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi (Answer)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5d5f0cef-2ba8-4c0f-892b-a0e060781f4b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c6ef445266b13d8f6fb46bf80cd5a72e60817b1ce9142d6807d2d2e8b6843fe5"
+  },
+  "id": "9NVwQjFZqhX00vqI",
+  "tags": []
+}
